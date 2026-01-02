@@ -13,8 +13,11 @@ jobs:
 
       - name: Unzip source
         run: |
-          unzip *.zip
-          ls
+          unzip -o *.zip
+          echo "=== Top-level after unzip ==="
+          ls -la
+          echo "=== Find android dirs ==="
+          find . -type d -name android -maxdepth 6 || true
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -30,7 +33,17 @@ jobs:
 
       - name: Build APK
         run: |
-          cd xash3d-fwgs-master/android || cd */android
+          ANDROID_DIR=$(find . -type f -name gradlew -path "*android/*" | head -n 1 | xargs -I{} dirname {})
+          echo "Android dir (with gradlew): $ANDROID_DIR"
+
+          if [ -z "$ANDROID_DIR" ]; then
+            echo "ERROR: Could not find android/gradlew. Check zip contents."
+            echo "Files:"
+            find . -maxdepth 4 -type f | head -n 200
+            exit 1
+          fi
+
+          cd "$ANDROID_DIR"
           chmod +x gradlew
           ./gradlew assembleDebug
 
